@@ -1,0 +1,168 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SRMIST Spotify Stats Matcher</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
+    <style>
+        
+        .login-card {
+            background-color: rgba(118, 156, 95, 0.473);
+            
+        }
+        .error {
+            color: #d32f2f;
+            margin-bottom: 1rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="loginPage" class="login-page">
+        <div class="login-card">
+            <h1 class="text-2xl font-bold mb-2">Login to SRMIST</h1>
+            <p class="text-gray-600 mb-4">Please sign in with your SRMIST Gmail account</p>
+            <form id="loginForm">
+                <label for="email" class="block mb-1">Email</label>
+                <input type="email" id="email" name="email" placeholder="youremail@srmist.edu.in" required
+                       class="w-full p-2 mb-3 border rounded">
+                
+                <label for="password" class="block mb-1">Password</label>
+                <input type="password" id="password" name="password" required
+                       class="w-full p-2 mb-3 border rounded">
+                
+                <div id="errorMessage" class="error">Please use an email address from srmist.edu.in domain.</div>
+                
+                <button type="submit" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
+                    Sign in with Gmail
+                </button>
+            </form>
+            <div class="text-center mt-4">
+                <a href="#" class="text-blue-500 hover:underline">Forgot password?</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Spotify Stats Matcher Page -->
+    <div id="spotifyStatsPage" class="container mx-auto px-4 py-8" style="display: none;">
+        <h1 class="text-4xl font-bold text-center mb-8">Spotify Stats Matcher</h1>
+        
+        <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+            <h2 class="text-2xl font-semibold mb-4">Enter Your Spotify Stats</h2>
+            <p class="mb-4">Please enter your top artists and tracks from <a href="https://www.statsforspotify.com/" target="_blank" class="text-blue-500 hover:underline">statsforspotify.com</a></p>
+            
+            <input type="text" id="userName" placeholder="Your Name" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline mb-4">
+            
+            <h3 class="text-xl font-semibold mb-2">Top 5 Artists</h3>
+            <div id="artistInputs"></div>
+            
+            <h3 class="text-xl font-semibold mb-2 mt-6">Top 5 Tracks</h3>
+            <div id="trackInputs"></div>
+            
+            <button id="findMatchesButton" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mt-6">
+                Find Matches
+            </button>
+        </div>
+
+        <div id="results" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4 hidden">
+            <h2 class="text-2xl font-semibold mb-4">Your Matches</h2>
+            <ul id="matchList" class="list-disc pl-5"></ul>
+        </div>
+    </div>
+
+    <script>
+        // Login form handling
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var email = document.getElementById('email').value;
+            var errorMessage = document.getElementById('errorMessage');
+            
+            if (!email.includes('@srmist.edu.in')) {
+                errorMessage.style.display = 'block';
+            } else {
+                errorMessage.style.display = 'none';
+                // Simulating successful login
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('spotifyStatsPage').style.display = 'block';
+            }
+        });
+
+        // Spotify Stats Matcher code
+        let users = [];
+
+        function createInputs(containerId, placeholderPrefix, count) {
+            const container = document.getElementById(containerId);
+            for (let i = 1; i <= count; i++) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = `${placeholderPrefix} ${i}`;
+                input.className = 'shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline mb-2';
+                input.id = `${containerId}${i}`;
+                container.appendChild(input);
+            }
+        }
+
+        createInputs('artistInputs', 'Artist', 5);
+        createInputs('trackInputs', 'Track', 5);
+
+        document.getElementById('findMatchesButton').addEventListener('click', function() {
+            const userName = document.getElementById('userName').value;
+            const artists = Array.from({ length: 5 }, (_, i) => document.getElementById(`artistInputs${i+1}`).value).filter(Boolean);
+            const tracks = Array.from({ length: 5 }, (_, i) => document.getElementById(`trackInputs${i+1}`).value).filter(Boolean);
+
+            const userData = { name: userName, artists: artists, tracks: tracks };
+            storeUserData(userData);
+
+            const matches = findMatches(userData);
+            displayMatches(matches);
+        });
+
+        function storeUserData(userData) {
+            const existingUserIndex = users.findIndex(user => user.name === userData.name);
+            if (existingUserIndex !== -1) {
+                users[existingUserIndex] = userData;
+            } else {
+                users.push(userData);
+            }
+            console.log('Updated users:', users);
+        }
+
+        function findMatches(userData) {
+            return users
+                .filter(user => user.name !== userData.name)
+                .map(user => {
+                    const artistMatch = user.artists.filter(artist => userData.artists.includes(artist)).length;
+                    const trackMatch = user.tracks.filter(track => userData.tracks.includes(track)).length;
+                    const totalMatch = artistMatch + trackMatch;
+                    const matchPercentage = (totalMatch / (userData.artists.length + userData.tracks.length)) * 100;
+                    return { name: user.name, matchPercentage: matchPercentage.toFixed(2) };
+                })
+                .sort((a, b) => b.matchPercentage - a.matchPercentage)
+                .slice(0, 3);
+        }
+
+        function displayMatches(matches) {
+            const matchList = document.getElementById('matchList');
+            matchList.innerHTML = '';
+            
+            if (matches.length === 0) {
+                const li = document.createElement('li');
+                li.textContent = "No matches found. Be the first to add your stats!";
+                matchList.appendChild(li);
+            } else {
+                matches.forEach(match => {
+                    const li = document.createElement('li');
+                    li.textContent = `${match.name} (${match.matchPercentage}% match)`;
+                    matchList.appendChild(li);
+                });
+            }
+            
+            document.getElementById('results').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
